@@ -91,6 +91,10 @@ HAPROXY_BACKUP_ADDRESS: '172.16.0.105'
 
 ## ansible-playbook服务部署
 
+#### Create Certs
+
+`# ansible-playbook playbooks/certs_install.yaml -i inventory/hosts`
+
 #### Etcd install
 
 `# ansible-playbook playbooks/etcd_install.yaml -i inventory/hosts`
