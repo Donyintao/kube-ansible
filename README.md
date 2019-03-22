@@ -91,21 +91,21 @@ HAPROXY_BACKUP_ADDRESS: '172.16.0.102'
 
 ### ansible-playbook服务部署
 
-#### Etcd
+#### Etcd install
 
 `# ansible-playbook playbooks/etcd_install.yaml -i inventory/hosts`
 
-#### Docker
+#### Docker install
 
 `# ansible-playbook playbooks/docker_install.yaml -i inventory/hosts`
 
-#### Kubernetes master
+#### Kubernetes master install
 
 `# ansible-playbook playbooks/kube-master_install.yaml -i inventory/hosts`
 
-#### Kubernetes nodes
+#### Kubernetes nodes install
 
-`# ansible-playbook playbooks/kube-master_install.yaml -i inventory/hosts``
+`# ansible-playbook playbooks/kube-node_install.yaml -i inventory/hosts`
 
 #### 验证集群环境
 ```sh
