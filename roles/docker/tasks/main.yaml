@@ -1,0 +1,33 @@
+- name: Add dokcer-ce yum source
+  template:
+    src:  docker-ce.repo
+    dest: '/etc/yum.repos.d/docker-ce.repo'
+    owner: root
+    group: root
+    mode:  0644
+
+- name: install docker-ce service
+  yum: pkg=docker-ce-18.06.3.ce-3.el7 state=present
+
+- name: Create docker configuration directory.
+  file:
+    path: '/etc/docker'
+    owner: root
+    group: root
+    mode:  0755
+    state: directory
+
+- name: Copy dokcer daemon.json file into configuration directory.
+  template:
+    src:   daemon.json
+    dest:  '/etc/docker/daemon.json'
+    owner: root
+    group: root
+    mode:  0644
+
+- name: Restart docker service.
+  systemd:
+    state: restarted
+    daemon_reload: yes
+    name: docker
+    enabled: yes

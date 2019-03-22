@@ -1,0 +1,22 @@
+{
+    "CN": "etcd",
+    "hosts": [
+      "127.0.0.1",
+      "{{ ETCD_NODE1_ADDRESS }}",
+      "{{ ETCD_NODE2_ADDRESS }}",
+      "{{ ETCD_NODE3_ADDRESS }}"
+    ],
+    "key": {
+        "algo": "rsa",
+        "size": 2048
+    },
+    "names": [
+        {
+            "C": "CN",
+            "ST": "BeiJing",
+            "L": "BeiJing",
+            "O": "k8s",
+            "OU": "System"
+        }
+    ]
+}

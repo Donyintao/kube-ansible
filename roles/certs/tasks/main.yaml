@@ -1,0 +1,82 @@
+- name: Create cfssl tmp directory.
+  file:
+    path: '{{ KUBE_CERTS_PATH }}'
+    owner: root
+    group: root
+    mode:  0755
+    state: directory
+
+- name:  Copy cfssl scripts file into tmp directory.
+  copy:
+    src:  create_cfssl.sh
+    dest: '{{ KUBE_CERTS_PATH }}/create_cfssl.sh'
+    owner: root
+    group: root
+    mode:  0700
+
+- name:  Copy ca-config file into tmp directory.
+  template:
+    src:  ca-config.json
+    dest: '{{ KUBE_CERTS_PATH }}/ca-config.json'
+    owner: root
+    group: root
+    mode:  0644
+
+- name:  Copy ca-csr file into tmp directory.
+  template:
+    src:  ca-csr.json
+    dest: '{{ KUBE_CERTS_PATH }}/ca-csr.json'
+    owner: root
+    group: root
+    mode:  0644
+
+- name:  Copy etcd-csr file into tmp directory.
+  template:
+    src:  etcd-csr.json
+    dest: '{{ KUBE_CERTS_PATH }}/etcd-csr.json'
+    owner: root
+    group: root
+    mode:  0644
+
+- name:  Copy kube-apiserver-csr file into tmp directory.
+  template:
+    src:  kube-apiserver-csr.json
+    dest: '{{ KUBE_CERTS_PATH }}/kube-apiserver-csr.json'
+    owner: root
+    group: root
+    mode:  0644
+
+- name:  Copy kube-controller-manager-csr file into tmp directory.
+  template:
+    src:  kube-controller-manager-csr.json
+    dest: '{{ KUBE_CERTS_PATH }}/kube-controller-manager-csr.json'
+    owner: root
+    group: root
+    mode:  0644
+
+- name:  Copy kube-scheduler-csr file into tmp directory.
+  template:
+    src:  kube-scheduler-csr.json
+    dest: '{{ KUBE_CERTS_PATH }}/kube-scheduler-csr.json'
+    owner: root
+    group: root
+    mode:  0644
+
+- name:  Copy kubelet-csr file into tmp directory.
+  template:
+    src:  kubelet-csr.json
+    dest: '{{ KUBE_CERTS_PATH }}/kubelet-csr.json'
+    owner: root
+    group: root
+    mode:  0644
+
+- name:  Copy kube-proxy-csr file into tmp directory.
+  template:
+    src:  kube-proxy-csr.json
+    dest: '{{ KUBE_CERTS_PATH }}/kube-proxy-csr.json'
+    owner: root
+    group: root
+    mode:  0644
+
+- name: Create certificate on the first kubernetes server.
+  command: '{{ KUBE_CERTS_PATH }}/create_cfssl.sh'

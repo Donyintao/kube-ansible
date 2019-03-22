@@ -1,0 +1,59 @@
+- name: Install base software packages
+  yum:
+    name:
+      - conntrack-tools
+      - ipvsadm
+      - ipset
+    state: present
+
+- name: Create Kubernets kube-proxy logs directory.
+  file:
+    path: '{{ KUBE_LOGS_PATH  }}/kube-proxy'
+    owner: root
+    group: root
+    mode:  0755
+    state: directory
+
+- name:  Copy ipvs modules file into modules directory.
+  template:
+    src:   ipvs.modules
+    dest:  /etc/sysconfig/modules/ipvs.modules
+    owner: root
+    group: root
+    mode:  0755
+
+- name: Load ipvs module.
+  shell: /etc/sysconfig/modules/ipvs.modules
+  args:
+    executable: /bin/bash
+
+- name:  Copy kube-proxy file into install directory.
+  template:
+    src:  kube-proxy
+    dest: '{{ KUBE_HOME_PATH }}/etc/kube-proxy'
+    owner: root
+    group: root
+    mode:  0644
+
+- name:  Copy kube-proxy kubeconfig file into install directory.
+  template:
+    src:  kube-proxy.kubeconfig
+    dest: '{{ KUBE_HOME_PATH }}/etc/kube-proxy.kubeconfig'
+    owner: root
+    group: root
+    mode:  0644
+
+- name:  Copy kube-proxy service file into install directory.
+  template:
+    src:  kube-proxy.service
+    dest: /usr/lib/systemd/system/kube-proxy.service 
+    owner: root
+    group: root
+    mode:  0644
+
+- name: Restart kube-proxy service.
+  systemd:
+    state: restarted
+    daemon_reload: yes
+    name: kube-proxy
+    enabled: yes

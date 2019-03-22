@@ -1,0 +1,38 @@
+- name: Create Kubernets kube-scheduler logs directory.
+  file:
+    path: '{{ KUBE_LOGS_PATH  }}/kube-scheduler'
+    owner: root
+    group: root
+    mode:  0755
+    state: directory
+
+- name:  Copy kube-scheduler file into install directory.
+  template:
+    src:  kube-scheduler
+    dest: '{{ KUBE_HOME_PATH }}/etc/kube-scheduler'
+    owner: root
+    group: root
+    mode:  0644
+
+- name:  Copy kube-scheduler kubeconfig file into install directory.
+  template:
+    src:  kube-scheduler.kubeconfig
+    dest: '{{ KUBE_HOME_PATH }}/etc/kube-scheduler.kubeconfig'
+    owner: root
+    group: root
+    mode:  0644
+
+- name:  Copy kube-scheduler service file into install directory.
+  template:
+    src:  kube-scheduler.service
+    dest: /usr/lib/systemd/system/kube-scheduler.service 
+    owner: root
+    group: root
+    mode:  0644
+
+- name: Restart kube-scheduler service.
+  systemd:
+    state: restarted
+    daemon_reload: yes
+    name: kube-scheduler
+    enabled: yes

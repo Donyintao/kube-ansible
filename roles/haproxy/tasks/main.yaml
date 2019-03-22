@@ -1,0 +1,43 @@
+- name: Deploy haproxy service.
+  yum: name={{ item }} state=present
+  with_items:
+      - haproxy
+      - keepalived
+
+- name:  Copy haproxy file into install directory.
+  template:
+    src:   haproxy.cfg
+    dest:  "/etc/haproxy/haproxy.cfg"
+    owner: root
+    group: root
+    mode:  0644
+
+- name:  Copy rsyslog haproxy file into install directory.
+  template:
+    src:   haproxy.conf
+    dest:  "/etc/rsyslog.d/haproxy.conf"
+    owner: root
+    group: root
+    mode:  0644
+
+- name:  Copy keepalived file into install directory.
+  template:
+    src:  keepalived.conf 
+    dest:  "/etc/keepalived/keepalived.conf"
+    owner: root
+    group: root
+    mode:  0644
+
+- name: Restart haproxy service.
+  systemd:
+    state: restarted
+    daemon_reload: yes
+    name: haproxy
+    enabled: yes
+
+- name: Restart keepalived service.
+  systemd:
+    state: restarted
+    daemon_reload: yes
+    name: keepalived
+    enabled: yes

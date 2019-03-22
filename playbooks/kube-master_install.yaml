@@ -1,0 +1,7 @@
+- name: Deploy kubernetes master service.
+  hosts: kube-master
+  remote_user: root
+  roles:
+    - kube-master
+  tags:
+    - kube-master

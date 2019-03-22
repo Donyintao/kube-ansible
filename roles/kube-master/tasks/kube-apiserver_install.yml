@@ -1,0 +1,38 @@
+- name: Create Kubernets kube-apiserver logs directory.
+  file: 
+    path: '{{ KUBE_LOGS_PATH  }}/kube-apiserver'
+    owner: root
+    group: root
+    mode:  0755
+    state: directory
+
+- name:  Copy kube-config file into install directory.
+  template:
+    src:  kube-config
+    dest: '{{ KUBE_HOME_PATH }}/etc/kube-config'
+    owner: root
+    group: root
+    mode:  0644
+
+- name:  Copy kube-apiserver file into install directory.
+  template:
+    src:  kube-apiserver
+    dest: '{{ KUBE_HOME_PATH }}/etc/kube-apiserver'
+    owner: root
+    group: root
+    mode:  0644
+
+- name:  Copy kube-apiserver service file into install directory.
+  template:
+    src:  kube-apiserver.service
+    dest: /usr/lib/systemd/system/kube-apiserver.service 
+    owner: root
+    group: root
+    mode:  0644
+
+- name: Restart kube-apiserver service.
+  systemd:
+    state: restarted
+    daemon_reload: yes
+    name: kube-apiserver
+    enabled: yes

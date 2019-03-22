@@ -1,0 +1,15 @@
+####
+## kubernetes kubelet config
+####
+## You may leave this blank to use the actual hostname
+KUBELET_HOSTNAME="--hostname-override={{ ansible_hostname }}"
+#
+## pod infrastructure container
+KUBELET_POD_INFRA_CONTAINER="--pod-infra-container-image={{ KUBE_POD_IMAGES }}"
+#
+## Add your own!
+KUBELET_ARGS="--root-dir={{ KUBE_KUBELET_DIR }} \
+              --log-dir={{ KUBE_LOGS_PATH }}/kubelet \
+              --cert-dir={{ KUBE_HOME_PATH }}/etc/ssl \
+              --config={{ KUBE_HOME_PATH }}/etc/kubelet.config \
+              --kubeconfig={{ KUBE_HOME_PATH }}/etc/kubelet.kubeconfig"

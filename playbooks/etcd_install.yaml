@@ -1,0 +1,7 @@
+- name: Deploy etcd service.
+  hosts: etcd-nodes
+  remote_user: root
+  roles:
+    - etcd
+  tags:
+    - etcd

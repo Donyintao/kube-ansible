@@ -1,0 +1,24 @@
+[Unit]
+Description=Kubelet Service
+After=network.target
+ 
+[Service]
+WorkingDirectory={{ KUBE_KUBELET_DIR }}
+EnvironmentFile=-{{ KUBE_HOME_PATH }}/etc/kube-config
+EnvironmentFile=-{{ KUBE_HOME_PATH }}/etc/kubelet
+ExecStart={{ KUBE_HOME_PATH }}/bin/kubelet \
+          $KUBE_LOGTOSTDERR \
+          $KUBE_LOG_LEVEL \
+          $KUBELET_API_SERVER \
+          $KUBELET_ADDRESS \
+          $KUBELET_PORT \
+          $KUBELET_HOSTNAME \
+          $KUBE_ALLOW_PRIV \
+          $KUBELET_POD_INFRA_CONTAINER \
+          $KUBELET_ARGS
+ 
+Restart=on-failure
+LimitNOFILE=65536
+ 
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,18 @@
+[etcd-nodes]
+172.16.0.101    ETCD_NAME=etcd-node1
+172.16.0.102    ETCD_NAME=etcd-node2
+172.16.0.103    ETCD_NAME=etcd-node3
+
+[kube-master]
+172.16.0.101
+172.16.0.102
+172.16.0.103
+
+[kube-node]
+172.16.0.101
+172.16.0.102
+172.16.0.103
+
+[haproxy]
+172.16.0.101  STATE=MASTER PRIORITY=200
+172.16.0.102  STATE=BACKUP PRIORITY=150
