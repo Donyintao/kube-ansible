@@ -85,11 +85,11 @@ KUBE_CLUSTER_NAME: 'linux-testing'
 KUBE_POD_IMAGES: 'k8s.gcr.io/pause:3.1'
 
 ## Haproxy variable
-HAPROXY_MASTER_ADDRESS: '172.16.0.101'
-HAPROXY_BACKUP_ADDRESS: '172.16.0.102'
+HAPROXY_MASTER_ADDRESS: '172.16.0.104'
+HAPROXY_BACKUP_ADDRESS: '172.16.0.105'
 ```
 
-### ansible-playbook服务部署
+## ansible-playbook服务部署
 
 #### Etcd install
 
