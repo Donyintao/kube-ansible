@@ -4,7 +4,7 @@
 
 ### 下载kubernetes二进制文件
 
-注意: `kubernetes`服务的所有二进制文件均已打包好供下载 https://pan.baidu.com/s/1LWI6rL2Pgo27nohhvA5LwA 提取码: wn4b 
+注意: `kubernetes`所有二进制文件均提供下载 https://pan.baidu.com/s/1LWI6rL2Pgo27nohhvA5LwA 提取码: wn4b 
 
 说明: 将`kube-master`和`kube-node`下载好的二进制文件放到指定的文件目录
 
