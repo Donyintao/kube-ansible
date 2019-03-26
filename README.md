@@ -35,8 +35,8 @@
 172.16.0.103
 
 [haproxy]
-172.16.0.101  STATE=MASTER PRIORITY=200
-172.16.0.102  STATE=BACKUP PRIORITY=150
+172.16.0.104  STATE=MASTER PRIORITY=200
+172.16.0.105  STATE=BACKUP PRIORITY=150
 ```
 
 ### 配置集群环境变量
@@ -102,6 +102,10 @@ HAPROXY_BACKUP_ADDRESS: '172.16.0.105'
 #### Docker install
 
 `# ansible-playbook playbooks/docker_install.yaml -i inventory/hosts`
+
+#### Haproxy install
+
+`# ansible-playbook playbooks/haproxy_install.yaml -i inventory/hosts`
 
 #### Kubernetes master install
 
