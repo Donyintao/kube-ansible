@@ -9,6 +9,7 @@
 说明: 将`kube-master`和`kube-node`下载好的二进制文件放到指定的文件目录
 
 ```sh
+# 说明: GitHub不允许提交空目录，建议手动创建`files`目录后拷贝。
 # cp -r kube-master-v1.13.4.tar.gz roles/kube-master/files/kubernetes-v1.13.4.tar.gz
 # cp -r kube-node-v1.13.4.tar.gz roles/kube-node/files/kubernetes-v1.13.4.tar.gz
 ```
@@ -52,13 +53,14 @@ ETCD_DATA_PATH: '/var/lib/etcd'
 ETCD_CLUSTER_ADDRESS: 'https://{{ KUBE_MASTER1_ADDRESS }}:2379,https://{{ KUBE_MASTER2_ADDRESS }}:2379,https://{{ KUBE_MASTER3_ADDRESS }}:2379'
 ETCD_CLUSTER_LIST: 'etcd-node1=https://{{ KUBE_MASTER1_ADDRESS }}:2380,etcd-node2=https://{{ KUBE_MASTER2_ADDRESS }}:2380,etcd-node3=https://{{ KUBE_MASTER3_ADDRESS }}:2380'
 
-## Flannel variable
+### Flannel variable
 #FLANNEL_ETCD_NETWORK: '/flannel/network'
 #FLANNEL_CERT_PATH: '/etc/flannel/ssl'
 #FLANNEL_CA_FILE: '{{ FLANNEL_CERT_PATH }}/ca.pem'
 #FLANNEL_CERT_FILE: '{{ FLANNEL_CERT_PATH }}/flanneld.pem'
 #FLANNEL_kEY_FILE: '{{ FLANNEL_CERT_PATH }}/flanneld-key.pem'
 #FLANNEL_OPTIONS: '-iface=eth0 -ip-masq -etcd-cafile={{ FLANNEL_CA_FILE }} -etcd-certfile={{ FLANNEL_CERT_FILE }} -etcd-keyfile={{ FLANNEL_kEY_FILE }}'
+###
 
 ## Docker variable
 DOCKER_DATA_PATH: '/data/docker'
@@ -89,7 +91,9 @@ HAPROXY_MASTER_ADDRESS: '172.16.0.104'
 HAPROXY_BACKUP_ADDRESS: '172.16.0.105'
 ```
 
-## ansible-playbook服务部署
+## Kubernetes Install
+
+说明: 每个安装步骤，可以手动验证是否部署成功。
 
 #### Create Certs
 
@@ -120,6 +124,8 @@ HAPROXY_BACKUP_ADDRESS: '172.16.0.105'
 # kubectl get nodes -o wide
 NAME        STATUS   ROLES    AGE     VERSION   INTERNAL-IP    EXTERNAL-IP   OS-IMAGE                KERNEL-VERSION                CONTAINER-RUNTIME
 k8s-node1   Ready    <none>   23h     v1.13.4   172.16.0.101   <none>        CentOS Linux 7 (Core)   4.4.166-1.el7.elrepo.x86_64   docker://18.6.3
-k8s-node2   Ready    <none>   7h10m   v1.13.4   172.16.0.102   <none>        CentOS Linux 7 (Core)   4.4.166-1.el7.elrepo.x86_64   docker://18.6.3
+k8s-node2   Ready    <none>   23h     v1.13.4   172.16.0.102   <none>        CentOS Linux 7 (Core)   4.4.166-1.el7.elrepo.x86_64   docker://18.6.3
 k8s-node3   Ready    <none>   23h     v1.13.4   172.16.0.103   <none>        CentOS Linux 7 (Core)   4.4.166-1.el7.elrepo.x86_64   docker://18.6.3
 ```
+
+
