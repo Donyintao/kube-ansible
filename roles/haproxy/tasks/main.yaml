@@ -27,6 +27,14 @@
     owner: root
     group: root
     mode:  0644
+    
+- name:  Copy haproxy check file into install directory.
+  copy:
+    src:  haproxy_check.sh
+    dest:  "/etc/keepalived/haproxy_check.sh"
+    owner: root
+    group: root
+    mode:  0755
 
 - name: Restart haproxy service.
   systemd:
