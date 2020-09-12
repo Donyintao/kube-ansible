@@ -1,7 +1,0 @@
-- name: Deploy haproxy service.
-  hosts: haproxy
-  remote_user: root
-  roles:
-    - haproxy
-  tags:
-    - haproxy

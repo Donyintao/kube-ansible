@@ -1,7 +1,0 @@
-- name: Create Certificate Authority.
-  hosts: "{{ groups['kube-master'][0] }}"
-  remote_user: root
-  roles:
-    - certs
-  tags:
-    - certs

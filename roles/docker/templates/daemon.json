@@ -1,5 +1,0 @@
-{
-    "registry-mirrors": ["{{ DOCKER_REGSTRY_MIRRORS }}"],
-    "storage-driver": "overlay2",
-    "graph": "{{ DOCKER_DATA_PATH }}"
-}

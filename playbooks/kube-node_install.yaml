@@ -1,7 +1,0 @@
-- name: Deploy kubernetes node service.
-  hosts: kube-node
-  remote_user: root
-  roles:
-    - kube-node
-  tags:
-    - kube-node
