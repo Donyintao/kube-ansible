@@ -1,131 +1,244 @@
-# Ansible kubernetes install
+## Ansible kubernetes install
 
-## 部署前提和注意事项
+### 部署前提和注意事项
 
-### 下载kubernetes二进制文件
-
-注意: `kubernetes`所有二进制文件均提供下载 https://pan.baidu.com/s/1LWI6rL2Pgo27nohhvA5LwA 提取码: wn4b 
-
-说明: 将`kube-master`和`kube-node`下载好的二进制文件放到指定的文件目录
+github外网速度越来越慢下载且成功率不高，建议提前采用手动方式进行下载。
 
 ```sh
-# 说明: GitHub不允许提交空目录，建议手动创建`files`目录后拷贝。
-# cp -r kube-master-v1.13.4.tar.gz roles/kube-master/files/kubernetes-v1.13.4.tar.gz
-# cp -r kube-node-v1.13.4.tar.gz roles/kube-node/files/kubernetes-v1.13.4.tar.gz
+$ cd /tmp
+# 下载kubernetes server压缩包, 说明: 压缩包版本建议与"${KUBE_APP_VERSION}"保持一致
+$ wget https://storage.googleapis.com/kubernetes-release/release/v1.18.8/kubernetes-server-linux-amd64.tar.gz
+$ tar fx kubernetes-server-linux-amd64.tar.gz
+# 下载cni压缩包
+$ wget https://github.com/containernetworking/plugins/releases/download/v0.8.7/cni-plugins-linux-amd64-v0.8.7.tgz
+$ mkdir -p /tmp/cni
+$ tar fx cni-plugins-linux-amd64-v0.8.7.tgz -C /tmp/cni
 ```
 
-### 配置集群主机信息
+### 下载 ansible 一键生成脚本
 
-说明: 根据实际情况填写相关主机信息
+```bash
+$ wget https://raw.githubusercontent.com/Donyintao/kube-ansible/master/kubernetes.v1.18.sh
+```
+
+根据实际情况修改一键生成脚本的配置参数
 
 ```sh
-# vim inventory/hosts
-[etcd-nodes]
-172.16.0.101    ETCD_NAME=etcd-node1
-172.16.0.102    ETCD_NAME=etcd-node2
-172.16.0.103    ETCD_NAME=etcd-node3
+###################################################################################################################################
+######################                             记得修改下面的配置参数!!!!!!!                             ######################  
+###################################################################################################################################
 
-[kube-master]
-172.16.0.101
-172.16.0.102
-172.16.0.103
+# 临时目录
+TEMP_PATH="/tmp"
+# 存储目录
+DATA_PATH="/data"
+# 安装目录
+TOTAL_PATH="/usr/local"
+# CFSSL目录
+CFSSL_PATH="${TEMP_PATH}/cfssl"
+# PLAYBOOK目录
+PLAYBOOK_PATH="${TEMP_PATH}/palybooks"
 
-[kube-node]
-172.16.0.101
-172.16.0.102
-172.16.0.103
+# 证书信息配置
+CERT_ST="Beijing"
+CERT_L="Beijing"
+CERT_O="k8s"
+CERT_OU="System"
 
-[haproxy]
-172.16.0.104  STATE=MASTER PRIORITY=200
-172.16.0.105  STATE=BACKUP PRIORITY=150
+# ETCD 安装存储目录
+ETCD_HOME_PATH="${TOTAL_PATH}/etcd"
+ETCD_CONF_DIR="${ETCD_HOME_PATH}/conf"
+ETCD_DATA_DIR="${ETCD_HOME_PATH}/data"
+# ETCD MEMBER CLUSTER
+ETCD_MEMBER_1_IP="192.168.23.133"
+ETCD_MEMBER_1_HOSTNAMES="k8s-node1"
+ETCD_MEMBER_2_IP="192.168.23.134"
+ETCD_MEMBER_2_HOSTNAMES="k8s-node2"
+ETCD_MEMBER_3_IP="192.168.23.135"
+ETCD_MEMBER_3_HOSTNAMES="k8s-node3"
+# ETCD 集群通信地址和端口
+ETCD_NITIAL_CLUSTER="${ETCD_MEMBER_1_HOSTNAMES}=https://${ETCD_MEMBER_1_IP}:2380,${ETCD_MEMBER_2_HOSTNAMES}=https://${ETCD_MEMBER_2_IP}:2380,${ETCD_MEMBER_3_HOSTNAMES}=https://${ETCD_MEMBER_3_IP}:2380"
+# ETCD 集群服务地址列表
+ETCD_ENDPOINTS=https://${ETCD_MEMBER_1_IP}:2379,https://${ETCD_MEMBER_2_IP}:2379,https://${ETCD_MEMBER_3_IP}:2379
+# ETCD 
+ETCD_PREFIX="/registry"
+
+# Docker目录
+DOCKER_HOME_DIR="${DATA_PATH}/docker"
+# docker0 网卡, 说明: k8s集群不建议开启
+DOCKER_NET_BRIDGE="none"
+
+# MASTER ADDRESS
+KUBE_MASTER_1_IP="192.168.23.133"
+KUBE_MASTER_2_IP="192.168.23.134"
+KUBE_MASTER_3_IP="192.168.23.135"
+#  ADDRESSNODE
+KUBE_NODE_1_IP="192.168.23.136"
+KUBE_NODE_2_IP="192.168.23.137"
+KUBE_NODE_3_IP="192.168.23.138"
+# KUBE版本
+KUBE_APP_VERSION="v1.18.8"
+# 安装目录
+KUBE_HOME_PATH="${TOTAL_PATH}/kubernetes-${KUBE_APP_VERSION}"
+# 软连接目录
+KUBE_LINK_PATH="${TOTAL_PATH}/kubernetes"
+# 日志目录
+KUBE_LOGS_PATH="${DATA_PATH}/logs/kubernetes"
+# 集群(POD)网段
+KUBE_CLUSTER_CIDR="10.240.0.0/16"
+# 集群(SVC)网段
+KUBE_SERVICE_CIDR="10.241.0.0/16"
+# 集群(DNS)地址, 与KUBELET配置参数保持一致
+KUBE_SERVICE_DNS_IP="10.241.0.254"
+# 集群(SVC)地址, 一般是KUBE_SERVICE_CIDR中第一个IP
+KUBE_SERVICE_SVC_IP="10.241.0.1"
+# 端口范围
+KUBE_PORT_RANGE="30000-65535"
+# 集群DNS域名, 说明: 避免解析冲突, 不推荐使用已存在的DNS域名
+KUBE_DNS_DOMAIN="linux-testing.com"
+# KUBELET存储目录
+KUBE_KUBELET_DIR="${DATA_PATH}/kubelet/data"
+# PAUSE镜像(默认使用官方镜像, 建议改成国内地址)
+KUBE_PAUSE_IMAGE="k8s.gcr.io/pause:3.2"
+# Master VIP地址(SLB建议提前配置)
+KUBE_CLUSTER_VIP_IP="192.168.23.133"
+# Master VIP端口
+KUBE_CLUSTER_VIP_PORT="6443"
+# Master VIP域名
+KUBE_CLUSTER_VIP_DOMAIN="kube-master.linux-testing.com"
+# Master VIP模式 说明: 0、keepalived+haproxy(脚本暂时未添加ß) 1、(公有云)负载均衡器SLB
+KUBE_VIP_TOOL=1
 ```
-
-### 配置集群环境变量
-
-说明: 根据实际情况填写相关环境变量
 
 ```sh
-# vim inventory/group_vars/all.yaml
-## Etcd variable
-ETCD_HOME_PATH: '/etc/etcd'
-ETCD_CERT_PATH: '{{ ETCD_HOME_PATH }}/ssl'
-ETCD_DATA_PATH: '/var/lib/etcd'
-ETCD_CLUSTER_ADDRESS: 'https://{{ KUBE_MASTER1_ADDRESS }}:2379,https://{{ KUBE_MASTER2_ADDRESS }}:2379,https://{{ KUBE_MASTER3_ADDRESS }}:2379'
-ETCD_CLUSTER_LIST: 'etcd-node1=https://{{ KUBE_MASTER1_ADDRESS }}:2380,etcd-node2=https://{{ KUBE_MASTER2_ADDRESS }}:2380,etcd-node3=https://{{ KUBE_MASTER3_ADDRESS }}:2380'
+$ sh -x kubernetes.v1.18.sh
+tree -n /tmp/palybooks
+/tmp/palybooks
+├── docker.yaml
+├── etcd.yaml
+├── invertory
+│   └── hosts
+├── kube-master.yaml
+├── kube-node.yaml
+└── roles
+    ├── docker
+    │   ├── tasks
+    │   │   └── main.yml
+    │   └── templates
+    │       └── daemon.json
+    ├── etcd
+    │   ├── files
+    │   │   ├── conf
+    │   │   │   └── etcd.service
+    │   │   └── ssl
+    │   │       ├── ca-key.pem
+    │   │       ├── ca.pem
+    │   │       ├── etcd-key.pem
+    │   │       └── etcd.pem
+    │   ├── tasks
+    │   │   └── main.yml
+    │   └── templates
+    │       └── etcd.conf
+    ├── kube-master
+    │   ├── files
+    │   │   ├── bin
+    │   │   │   ├── kube-apiserver
+    │   │   │   ├── kube-controller-manager
+    │   │   │   ├── kubectl
+    │   │   │   └── kube-scheduler
+    │   │   └── ssl
+    │   │       ├── ca-key.pem
+    │   │       ├── ca.pem
+    │   │       ├── etcd-key.pem
+    │   │       ├── etcd.pem
+    │   │       ├── kube-apiserver-key.pem
+    │   │       ├── kube-apiserver.pem
+    │   │       ├── kube-controller-manager-key.pem
+    │   │       ├── kube-controller-manager.pem
+    │   │       ├── kubelet-key.pem
+    │   │       ├── kubelet.pem
+    │   │       ├── kube-proxy-key.pem
+    │   │       ├── kube-proxy.pem
+    │   │       ├── kube-scheduler-key.pem
+    │   │       └── kube-scheduler.pem
+    │   ├── tasks
+    │   │   └── main.yaml
+    │   └── templates
+    │       ├── kube-apiserver
+    │       ├── kube-apiserver.service
+    │       ├── kube-config
+    │       ├── kube-controller-manager
+    │       ├── kube-controller-manager.kubeconfig
+    │       ├── kube-controller-manager.service
+    │       ├── kube-scheduler
+    │       ├── kube-scheduler.kubeconfig
+    │       └── kube-scheduler.service
+    └── kube-node
+        ├── files
+        │   ├── bin
+        │   │   ├── kubelet
+        │   │   └── kube-proxy
+        │   ├── cni
+        │   │   ├── bandwidth
+        │   │   ├── bridge
+        │   │   ├── dhcp
+        │   │   ├── firewall
+        │   │   ├── flannel
+        │   │   ├── host-device
+        │   │   ├── host-local
+        │   │   ├── ipvlan
+        │   │   ├── loopback
+        │   │   ├── macvlan
+        │   │   ├── portmap
+        │   │   ├── ptp
+        │   │   ├── sbr
+        │   │   ├── static
+        │   │   ├── tuning
+        │   │   └── vlan
+        │   └── ssl
+        │       ├── ca-key.pem
+        │       ├── ca.pem
+        │       ├── kubelet-key.pem
+        │       ├── kubelet.pem
+        │       ├── kube-proxy-key.pem
+        │       └── kube-proxy.pem
+        ├── tasks
+        │   └── main.yaml
+        └── templates
+            ├── ipvs.modules
+            ├── kube-config
+            ├── kubelet
+            ├── kubelet.config
+            ├── kubelet.kubeconfig
+            ├── kubelet.service
+            ├── kube-proxy
+            ├── kube-proxy.config
+            ├── kube-proxy.kubeconfig
+            └── kube-proxy.service
 
-### Flannel variable
-#FLANNEL_ETCD_NETWORK: '/flannel/network'
-#FLANNEL_CERT_PATH: '/etc/flannel/ssl'
-#FLANNEL_CA_FILE: '{{ FLANNEL_CERT_PATH }}/ca.pem'
-#FLANNEL_CERT_FILE: '{{ FLANNEL_CERT_PATH }}/flanneld.pem'
-#FLANNEL_kEY_FILE: '{{ FLANNEL_CERT_PATH }}/flanneld-key.pem'
-#FLANNEL_OPTIONS: '-iface=eth0 -ip-masq -etcd-cafile={{ FLANNEL_CA_FILE }} -etcd-certfile={{ FLANNEL_CERT_FILE }} -etcd-keyfile={{ FLANNEL_kEY_FILE }}'
-###
-
-## Docker variable
-DOCKER_DATA_PATH: '/data/docker'
-DOCKER_REGSTRY_MIRRORS: 'http://d7eabb7d.m.daocloud.io'
-
-## Kubernetes variable
-KUBE_CERTS_PATH: '/tmp/sslTmp'
-KUBE_MASTER1_ADDRESS: '172.16.0.101'
-KUBE_MASTER2_ADDRESS: '172.16.0.102'
-KUBE_MASTER3_ADDRESS: '172.16.0.103'
-KUBE_HOME_PARENT: '/usr/local'
-KUBE_HOME_PATH: '{{ KUBE_HOME_PARENT }}/kubernetes'
-KUBE_LOGS_PATH: '/data/logs/kubernetes'
-KUBE_VERSION: 'v1.13.4'
-KUBE_MASTER_VIP: '172.16.0.253'
-KUBE_INGRESS_VIP: '172.16.0.252'
-KUBE_CLUSTER_CIDR: '10.240.0.0/16'
-KUBE_SERVICE_CIDR: '10.241.0.0/16'
-KUBE_SERVICE_DNS_IP: '10.241.0.254'
-KUBE_SERVICE_SVC_IP: '10.241.0.1'
-KUBE_PORT_RANGE: '30000-60000'
-KUBE_KUBELET_DIR: '/data/kubelet'
-KUBE_CLUSTER_NAME: 'linux-testing'
-KUBE_POD_IMAGES: 'k8s.gcr.io/pause:3.1'
-
-## Haproxy variable
-HAPROXY_MASTER_ADDRESS: '172.16.0.104'
-HAPROXY_BACKUP_ADDRESS: '172.16.0.105'
+24 directories, 77 files
 ```
 
-## Kubernetes Install
+### Kubernetes 集群安装
 
-说明: 每个安装步骤，可以手动验证是否部署成功。
-
-#### Create Certs
-
-`# ansible-playbook playbooks/certs_install.yaml -i inventory/hosts`
-
-#### Etcd install
-
-`# ansible-playbook playbooks/etcd_install.yaml -i inventory/hosts`
-
-#### Docker install
-
-`# ansible-playbook playbooks/docker_install.yaml -i inventory/hosts`
-
-#### Haproxy install
-
-`# ansible-playbook playbooks/haproxy_install.yaml -i inventory/hosts`
-
-#### Kubernetes master install
-
-`# ansible-playbook playbooks/kube-master_install.yaml -i inventory/hosts`
-
-#### Kubernetes nodes install
-
-`# ansible-playbook playbooks/kube-node_install.yaml -i inventory/hosts`
-
-#### 验证集群环境
-```sh
-# kubectl get nodes -o wide
-NAME        STATUS   ROLES    AGE     VERSION   INTERNAL-IP    EXTERNAL-IP   OS-IMAGE                KERNEL-VERSION                CONTAINER-RUNTIME
-k8s-node1   Ready    <none>   23h     v1.13.4   172.16.0.101   <none>        CentOS Linux 7 (Core)   4.4.166-1.el7.elrepo.x86_64   docker://18.6.3
-k8s-node2   Ready    <none>   23h     v1.13.4   172.16.0.102   <none>        CentOS Linux 7 (Core)   4.4.166-1.el7.elrepo.x86_64   docker://18.6.3
-k8s-node3   Ready    <none>   23h     v1.13.4   172.16.0.103   <none>        CentOS Linux 7 (Core)   4.4.166-1.el7.elrepo.x86_64   docker://18.6.3
+```bash
+# ansible playbooks目录
+$ cd /tmp/playbooks
+$ ansible-playbook etcd.yaml -i inventory/hosts
+$ ansible-playbook docker.yaml -i inventory/hosts
+$ ansible-playbook kube-master.yaml -i inventory/hosts
+$ ansible-playbook kube-node.yaml -i inventory/hosts
 ```
+
+or
+
+```bash
+$ cd /tmp/playbooks
+$ ansible-playbook etcd.yaml docker.yaml kube-master.yaml kube-node.yaml -i inventory/hosts
+```
+
+### Kubernetes 集群验证
+
+说明: ansible 一键生成脚本中默认没有开启8080端口，建议手动生成`config`文件后，执行`kubectl get node`验证集群状态
 
 
