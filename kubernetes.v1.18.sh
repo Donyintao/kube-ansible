@@ -18,7 +18,7 @@ TOTAL_PATH="/usr/local"
 # CFSSL目录
 CFSSL_PATH="${TEMP_PATH}/cfssl"
 # PLAYBOOK目录
-PLAYBOOK_PATH="${TEMP_PATH}/palybooks"
+PLAYBOOK_PATH="${TEMP_PATH}/ansible-playbook"
 
 # 证书信息配置
 CERT_ST="Beijing"
@@ -32,13 +32,13 @@ ETCD_CONF_DIR="${ETCD_HOME_PATH}/conf"
 ETCD_DATA_DIR="${ETCD_HOME_PATH}/data"
 # ETCD MEMBER CLUSTER
 ETCD_MEMBER_1_IP="192.168.23.133"
-ETCD_MEMBER_1_HOSTNAMES="k8s-node1"
+ETCD_MEMBER_1_HOSTNAME="k8s-node1"
 ETCD_MEMBER_2_IP="192.168.23.134"
-ETCD_MEMBER_2_HOSTNAMES="k8s-node2"
+ETCD_MEMBER_2_HOSTNAME="k8s-node2"
 ETCD_MEMBER_3_IP="192.168.23.135"
-ETCD_MEMBER_3_HOSTNAMES="k8s-node3"
-# ETCD 集群通信地址和端口
-ETCD_NITIAL_CLUSTER="${ETCD_MEMBER_1_HOSTNAMES}=https://${ETCD_MEMBER_1_IP}:2380,${ETCD_MEMBER_2_HOSTNAMES}=https://${ETCD_MEMBER_2_IP}:2380,${ETCD_MEMBER_3_HOSTNAMES}=https://${ETCD_MEMBER_3_IP}:2380"
+ETCD_MEMBER_3_HOSTNAME="k8s-node3"
+# ETCD 集群通信地址端口
+ETCD_NITIAL_CLUSTER="${ETCD_MEMBER_1_HOSTNAME}=https://${ETCD_MEMBER_1_IP}:2380,${ETCD_MEMBER_2_HOSTNAME}=https://${ETCD_MEMBER_2_IP}:2380,${ETCD_MEMBER_3_HOSTNAME}=https://${ETCD_MEMBER_3_IP}:2380"
 # ETCD 集群服务地址列表
 ETCD_ENDPOINTS=https://${ETCD_MEMBER_1_IP}:2379,https://${ETCD_MEMBER_2_IP}:2379,https://${ETCD_MEMBER_3_IP}:2379
 # ETCD 
@@ -51,13 +51,16 @@ DOCKER_NET_BRIDGE="none"
 
 # MASTER ADDRESS
 KUBE_MASTER_1_IP="192.168.23.133"
+KUBE_MEMBER_1_HOSTNAME="k8s-master-01"
 KUBE_MASTER_2_IP="192.168.23.134"
+KUBE_MEMBER_1_HOSTNAME="k8s-master-02"
 KUBE_MASTER_3_IP="192.168.23.135"
+KUBE_MEMBER_1_HOSTNAME="k8s-master-03"
 # KUBE版本
 KUBE_APP_VERSION="v1.18.8"
 # 安装目录
 KUBE_HOME_PATH="${TOTAL_PATH}/kubernetes-${KUBE_APP_VERSION}"
-# 软连接目录
+# 软连目录
 KUBE_LINK_PATH="${TOTAL_PATH}/kubernetes"
 # 日志目录
 KUBE_LOGS_PATH="${DATA_PATH}/logs/kubernetes"
@@ -65,51 +68,54 @@ KUBE_LOGS_PATH="${DATA_PATH}/logs/kubernetes"
 KUBE_CLUSTER_CIDR="10.240.0.0/16"
 # 集群(SVC)网段
 KUBE_SERVICE_CIDR="10.241.0.0/16"
-# 集群(DNS)地址, 与KUBELET配置参数保持一致
-KUBE_SERVICE_DNS_IP="10.241.0.254"
 # 集群(SVC)地址, 一般是KUBE_SERVICE_CIDR中第一个IP
 KUBE_SERVICE_SVC_IP="10.241.0.1"
-# 端口范围
+# 集群(DNS)地址, 与KUBELET配置参数保持一致
+KUBE_SERVICE_DNS_IP="10.241.0.2"
+# 集群端口范围
 KUBE_PORT_RANGE="30000-65535"
 # 集群DNS域名, 说明: 避免解析冲突, 不推荐使用已存在的DNS域名
 KUBE_DNS_DOMAIN="linux-testing.com"
 # KUBELET存储目录
 KUBE_KUBELET_DIR="${DATA_PATH}/kubelet/data"
 # PAUSE镜像(默认使用官方镜像, 建议改成国内地址)
-KUBE_PAUSE_IMAGE="k8s.gcr.io/pause:3.2"
+KUBE_PAUSE_IMAGE="registry.aliyuncs.com/google_containers/pause/pause:3.2"
 # Master VIP地址(SLB建议提前配置)
 KUBE_CLUSTER_VIP_IP="192.168.23.133"
 # Master VIP端口
 KUBE_CLUSTER_VIP_PORT="6443"
 # Master VIP域名
 KUBE_CLUSTER_VIP_DOMAIN="kube-master.linux-testing.com"
-# Master VIP模式 说明: 0、keepalived+haproxy(脚本暂时未添加ß) 1、(公有云)负载均衡器SLB
+# Master VIP模式 说明: 0、keepalived+haproxy(暂时未添加) 1、(公有云)负载均衡器SLB
 KUBE_VIP_TOOL=1
 
 ###################################################################################################################################
 ######################                                     Download file                                     ######################  
 ###################################################################################################################################
 cd ${TEMP_PATH}
-# 下载k8s文件(需要科学上网)
-if [ ! -d "kubernetes" ]; then
-    wget https://storage.googleapis.com/kubernetes-release/release/v1.18.8/kubernetes-server-linux-amd64.tar.gz
-    tar fx kubernetes-server-linux-amd64.tar.gz
-fi
-# 下载cni文件
-if [ ! -d "cni" ]; then
-    wget https://github.com/containernetworking/plugins/releases/download/v0.8.7/cni-plugins-linux-amd64-v0.8.7.tgz
-    mkdir -p cni
-    tar fx cni-plugins-linux-amd64-v0.8.7.tgz -C cni
-fi
-###################################################################################################################################
-######################                                 Certificate Authority                                 ######################  
-###################################################################################################################################
-
 # 检查CFSSL
 which cfssl || wget https://pkg.cfssl.org/R1.2/cfssl_linux-amd64 -O /usr/local/bin/cfssl
 which cfssljson || wget https://pkg.cfssl.org/R1.2/cfssljson_linux-amd64 -O /usr/local/bin/cfssljson
 which cfssl-certinfo || wget https://pkg.cfssl.org/R1.2/cfssl-certinfo_linux-amd64 -O /usr/local/bin/cfssl-certinfo
 chmod +x /usr/local/bin/cfssl*
+
+# 下载k8s文件(需要科学上网)
+if [ ! -d "kubernetes" ]; then
+    wget -q https://storage.googleapis.com/kubernetes-release/release/v1.18.8/kubernetes-server-linux-amd64.tar.gz
+    tar fx kubernetes-server-linux-amd64.tar.gz
+fi
+# 下载cni文件
+if [ ! -d "cni" ]; then
+    wget -q https://github.com/containernetworking/plugins/releases/download/v0.8.7/cni-plugins-linux-amd64-v0.8.7.tgz
+    mkdir -p cni && tar fx cni-plugins-linux-amd64-v0.8.7.tgz -C cni
+fi
+###################################################################################################################################
+######################                                 Certificate Authority                                 ######################  
+###################################################################################################################################
+
+# 重要的事情说三遍: 除非你了解保护 CA 使用的风险和机制, 否则生产环境不要在不同上下文中重用已经使用过的 CA
+# 重要的事情说三遍: 除非你了解保护 CA 使用的风险和机制, 否则生产环境不要在不同上下文中重用已经使用过的 CA
+# 重要的事情说三遍: 除非你了解保护 CA 使用的风险和机制, 否则生产环境不要在不同上下文中重用已经使用过的 CA
 
 # 创建证书签发配置
 mkdir -p ${CFSSL_PATH}
@@ -134,7 +140,7 @@ cat << EOF | tee ${CFSSL_PATH}/ca-config.json
   }
 }
 EOF
-# 创建CA证书签名请求
+# 创建K8S CA证书签名请求
 cat << EOF | tee ${CFSSL_PATH}/ca-csr.json 
 {
   "CN": "kubernetes",
@@ -153,18 +159,65 @@ cat << EOF | tee ${CFSSL_PATH}/ca-csr.json
   ]
 }
 EOF
-# 创建ETCD MEMBER配置文件
-cat << EOF | tee ${CFSSL_PATH}/etcd-csr.json
+# 创建ETCD CA证书签名请求
+cat << EOF | tee ${CFSSL_PATH}/etcd-ca-csr.json 
+{
+  "CN": "etcd",
+  "key": {
+    "algo": "rsa",
+    "size": 2048
+  },
+  "names": [
+    {
+      "C": "CN",
+      "ST": "${CERT_ST}",
+      "L": "${CERT_L}",
+      "O": "${CERT_O}",
+      "OU": "${CERT_OU}"
+    }
+  ]
+}
+EOF
+# 创建ETCD SERVER配置文件
+cat << EOF | tee ${CFSSL_PATH}/etcd-server-csr.json
+{
+  "CN": "etcd",
+    "hosts": [
+    "127.0.0.1",
+    "${ETCD_MEMBER_1_IP}",
+    "${ETCD_MEMBER_1_HOSTNAME}",
+    "${ETCD_MEMBER_2_IP}",
+    "${ETCD_MEMBER_2_HOSTNAME}",    
+    "${ETCD_MEMBER_3_IP}",
+    "${ETCD_MEMBER_3_HOSTNAME}"
+  ],
+  "key": {
+    "algo": "rsa",
+    "size": 2048
+  },
+  "names": [
+    {
+      "C": "CN",
+      "ST": "${CERT_ST}",
+      "L": "${CERT_L}",
+      "O": "${CERT_O}",
+      "OU": "${CERT_OU}"
+    }
+  ]
+}
+EOF
+# 创建ETCD CLIENT配置文件
+cat << EOF | tee ${CFSSL_PATH}/etcd-client-csr.json
 {
   "CN": "etcd",
   "hosts": [
     "127.0.0.1",
     "${ETCD_MEMBER_1_IP}",
-    "${ETCD_MEMBER_1_HOSTNAMES}",
+    "${ETCD_MEMBER_1_HOSTNAME}",
     "${ETCD_MEMBER_2_IP}",
-    "${ETCD_MEMBER_2_HOSTNAMES}",    
+    "${ETCD_MEMBER_2_HOSTNAME}",    
     "${ETCD_MEMBER_3_IP}",
-    "${ETCD_MEMBER_3_HOSTNAMES}"
+    "${ETCD_MEMBER_3_HOSTNAME}"
   ],
   "key": {
     "algo": "rsa",
@@ -276,7 +329,7 @@ EOF
 # 创建kube-proxy证书签名请求
 cat << EOF | tee ${CFSSL_PATH}/kube-proxy-csr.json
 {
-  "CN": "system:kube-proxy",
+  "CN": "kube-proxy",
   "hosts": [],
   "key": {
     "algo": "rsa",
@@ -293,14 +346,24 @@ cat << EOF | tee ${CFSSL_PATH}/kube-proxy-csr.json
   ]
 }
 EOF
-# 生成CA证书和私钥
-cfssl gencert -initca ${CFSSL_PATH}/ca-csr.json | cfssljson -bare ${CFSSL_PATH}/ca
-# 生成ETCD证书和私钥
+
+# 生成ETCD CA证书和私钥
+cfssl gencert -initca ${CFSSL_PATH}/etcd-ca-csr.json | cfssljson -bare ${CFSSL_PATH}/etcd-ca
+# 生成ETCD SERVER证书和私钥
 cfssl gencert \
-    -ca=${CFSSL_PATH}/ca.pem \
-    -ca-key=${CFSSL_PATH}/ca-key.pem \
+    -ca=${CFSSL_PATH}/etcd-ca.pem \
+    -ca-key=${CFSSL_PATH}/etcd-ca-key.pem \
     -config=${CFSSL_PATH}/ca-config.json \
-    -profile=kubernetes ${CFSSL_PATH}/etcd-csr.json | cfssljson -bare ${CFSSL_PATH}/etcd
+    -profile=kubernetes ${CFSSL_PATH}/etcd-server-csr.json | cfssljson -bare ${CFSSL_PATH}/etcd-server
+# 生成ETCD CLIENT证书和私钥
+cfssl gencert \
+    -ca=${CFSSL_PATH}/etcd-ca.pem \
+    -ca-key=${CFSSL_PATH}/etcd-ca-key.pem \
+    -config=${CFSSL_PATH}/ca-config.json \
+    -profile=kubernetes ${CFSSL_PATH}/etcd-client-csr.json | cfssljson -bare ${CFSSL_PATH}/etcd-client
+
+# 生成K8S CA证书和私钥
+cfssl gencert -initca ${CFSSL_PATH}/ca-csr.json | cfssljson -bare ${CFSSL_PATH}/ca
 # 生成kube-apiserver证书和私钥
 cfssl gencert \
     -ca=${CFSSL_PATH}/ca.pem \
@@ -339,7 +402,7 @@ cfssl gencert \
 # 创建ETCD Palybook目录
 mkdir -p ${PLAYBOOK_PATH}/roles/etcd/{files/{conf,ssl},tasks,templates}
 # 拷贝ETCD ssl证书到Playbook目录
-/bin/cp -rf ${CFSSL_PATH}/{ca*.pem,etcd*.pem} ${PLAYBOOK_PATH}/roles/etcd/files/ssl
+/bin/cp -rf ${CFSSL_PATH}/etcd*.pem ${PLAYBOOK_PATH}/roles/etcd/files/ssl
 # 创建ETCD Palybook文件
 cat << EOF | tee ${PLAYBOOK_PATH}/etcd.yaml
 - name: install etcd service
@@ -365,17 +428,24 @@ ETCD_INITIAL_CLUSTER="${ETCD_NITIAL_CLUSTER}"
 ETCD_INITIAL_CLUSTER_TOKEN="kubernetes-etcd-cluster"
 ETCD_INITIAL_CLUSTER_STATE="new"
 
-#[Security]
-ETCD_CERT_FILE="${ETCD_CONF_DIR}/ssl/etcd.pem"
-ETCD_KEY_FILE="${ETCD_CONF_DIR}/ssl/etcd-key.pem"
+#[Security client]
+ETCD_CERT_FILE="${ETCD_CONF_DIR}/ssl/etcd-client.pem"
+ETCD_KEY_FILE="${ETCD_CONF_DIR}/ssl/etcd-client-key.pem"
+ETCD_TRUSTED_CA_FILE="${ETCD_CONF_DIR}/ssl/etcd-ca.pem"
 ETCD_CLIENT_CERT_AUTH="true"
-ETCD_TRUSTED_CA_FILE="${ETCD_CONF_DIR}/ssl/ca.pem"
 ETCD_AUTO_TLS="true"
-ETCD_PEER_CERT_FILE="${ETCD_CONF_DIR}/ssl/etcd.pem"
-ETCD_PEER_KEY_FILE="${ETCD_CONF_DIR}/ssl/etcd-key.pem"
+
+#[Security server]
+ETCD_PEER_CERT_FILE="${ETCD_CONF_DIR}/ssl/etcd-server.pem"
+ETCD_PEER_KEY_FILE="${ETCD_CONF_DIR}/ssl/etcd-server-key.pem"
+ETCD_PEER_TRUSTED_CA_FILE="${ETCD_CONF_DIR}/ssl/etcd-ca.pem"
 ETCD_PEER_CLIENT_CERT_AUTH="true"
-ETCD_PEER_TRUSTED_CA_FILE="${ETCD_CONF_DIR}/ssl/ca.pem"
 ETCD_PEER_AUTO_TLS="true"
+
+#[Logging]
+ETCD_DEBUG="false"
+ETCD_LOG_PACKAGE_LEVELS="INFO"
+ETCD_LOG_OUTPUT="default"
 EOF
 # 创建ETCD启动文件
 cat << EOF | tee ${PLAYBOOK_PATH}/roles/etcd/files/conf/etcd.service
@@ -532,16 +602,38 @@ mkdir -p ${PLAYBOOK_PATH}/roles/kube-master/{files/{bin,ssl},tasks,templates}
 # 拷贝kube二进制文件Playbook目录
 /bin/cp -rf ${TEMP_PATH}/kubernetes/server/bin/{kubectl,kube-apiserver,kube-controller-manager,kube-scheduler} ${PLAYBOOK_PATH}/roles/kube-master/files/bin
 # 拷贝ssl证书到Playbook目录
-/bin/cp -rf ${TEMP_PATH}/cfssl/{ca*.pem,etcd*.pem,kube*.pem} ${PLAYBOOK_PATH}/roles/kube-master/files/ssl
+/bin/cp -rf ${TEMP_PATH}/cfssl/{ca*.pem,kube*.pem,etcd-ca.pem,etcd-client*.pem} ${PLAYBOOK_PATH}/roles/kube-master/files/ssl
 # 创建kube-master Playbook文件
 cat << EOF | tee ${PLAYBOOK_PATH}/kube-master.yaml
 - name: install kubernetes master service
-  hosts: kube-master
+  hosts: master
   remote_user: root
   roles:
     - kube-master
   tags:
     - kube-master
+EOF
+# 创建certificate config配置文件
+cat << EOF | tee ${PLAYBOOK_PATH}/roles/kube-master/templates/config
+apiVersion: v1
+clusters:
+- cluster:
+    certificate-authority-data: `cat ${KUBE_LINK_PATH}/etc/ssl/ca.pem | base64 -w 0`
+    server: https://${KUBE_CLUSTER_VIP_IP}:${KUBE_CLUSTER_VIP_PORT}
+  name: kubernetes
+contexts:
+- context:
+    cluster: kubernetes
+    user: kubernetes-admin
+  name: kubernetes-admin@kubernetes
+current-context: kubernetes-admin@kubernetes
+kind: Config
+preferences: {}
+users:
+- name: kubernetes-admin
+  user:
+    client-certificate-data: `cat ${KUBE_LINK_PATH}/etc/ssl/kubelet.pem | base64 -w 0`
+    client-key-data: `cat ${KUBE_LINK_PATH}/etc/ssl/kubelet-key.pem | base64 -w 0`
 EOF
 # 创建kube-config配置文件
 cat << EOF | tee ${PLAYBOOK_PATH}/roles/kube-master/templates/kube-config
@@ -581,7 +673,7 @@ cat << EOF | tee ${PLAYBOOK_PATH}/roles/kube-master/templates/kube-apiserver
 KUBE_API_ADDRESS="--advertise-address=0.0.0.0 --bind-address=0.0.0.0"
 #
 ## The port on the local server to listen on.
-KUBE_API_PORT="--insecure-port=0 --secure-port=6443"
+KUBE_API_PORT="--secure-port=6443"
 #
 ## Comma separated list of nodes in the etcd cluster
 KUBE_ETCD_SERVERS="--etcd-servers=${ETCD_ENDPOINTS}"
@@ -602,22 +694,22 @@ KUBE_API_ARGS="--apiserver-count=3 \\
                --enable-swagger-ui=true \\
                --service-node-port-range=${KUBE_PORT_RANGE} \\
                --log-dir=${KUBE_LOGS_PATH}/kube-apiserver \\
-               --requestheader-allowed-names=front-proxy-client \\
+               --etcd-prefix=${ETCD_PREFIX} \\
+               --etcd-cafile=${KUBE_LINK_PATH}/etc/ssl/etcd-ca.pem \\
+               --etcd-certfile=${KUBE_LINK_PATH}/etc/ssl/etcd-client.pem \\
+               --etcd-keyfile=${KUBE_LINK_PATH}/etc/ssl/etcd-client-key.pem \\
+               --kubelet-client-certificate=${KUBE_LINK_PATH}/etc/ssl/kubelet.pem \\
+               --kubelet-client-key=${KUBE_LINK_PATH}/etc/ssl/kubelet-key.pem \\
+               --kubelet-preferred-address-types=InternalIP,ExternalIP,Hostname \\
+               --requestheader-allowed-names=kubelet \\
                --requestheader-extra-headers-prefix=X-Remote-Extra- \\
                --requestheader-group-headers=X-Remote-Group \\
                --requestheader-username-headers=X-Remote-User \\
                --requestheader-client-ca-file=${KUBE_LINK_PATH}/etc/ssl/ca.pem \\
-               --client-ca-file=${KUBE_LINK_PATH}/etc/ssl/ca.pem \\
-               --etcd-prefix=${ETCD_PREFIX} \\
-               --etcd-cafile=${KUBE_LINK_PATH}/etc/ssl/ca.pem \\
-               --etcd-certfile=${KUBE_LINK_PATH}/etc/ssl/etcd.pem \\
-               --etcd-keyfile=${KUBE_LINK_PATH}/etc/ssl/etcd-key.pem \\
-               --kubelet-client-certificate=${KUBE_LINK_PATH}/etc/ssl/kubelet.pem \\
-               --kubelet-client-key=${KUBE_LINK_PATH}/etc/ssl/kubelet-key.pem \\
-               --kubelet-preferred-address-types=InternalIP,ExternalIP,Hostname \\
-               --proxy-client-cert-file=${KUBE_LINK_PATH}/etc/ssl/kube-proxy.pem \\
-               --proxy-client-key-file=${KUBE_LINK_PATH}/etc/ssl/kube-proxy-key.pem \\
+               --proxy-client-cert-file=${KUBE_LINK_PATH}/etc/ssl/kubelet.pem \\
+               --proxy-client-key-file=${KUBE_LINK_PATH}/etc/ssl/kubelet-key.pem \\
                --service-account-key-file=${KUBE_LINK_PATH}/etc/ssl/ca-key.pem \\
+               --client-ca-file=${KUBE_LINK_PATH}/etc/ssl/ca.pem \\
                --tls-cert-file=${KUBE_LINK_PATH}/etc/ssl/kube-apiserver.pem \\
                --tls-private-key-file=${KUBE_LINK_PATH}/etc/ssl/kube-apiserver-key.pem"
 EOF
@@ -636,7 +728,6 @@ ExecStart=${KUBE_LINK_PATH}/bin/kube-apiserver \\
           \$KUBE_ETCD_SERVERS \\
           \$KUBE_API_ADDRESS \\
           \$KUBE_API_PORT \\
-          \$KUBELET_PORT \\
           \$KUBE_ALLOW_PRIV \\
           \$KUBE_SERVICE_ADDRESSES \\
           \$KUBE_ADMISSION_CONTROL \\
@@ -803,7 +894,7 @@ cat << EOF | tee ${PLAYBOOK_PATH}/roles/kube-master/tasks/main.yaml
     owner: root
     group: root
     state: link
-- name:  copy kubernets master config file into install directory
+- name:  copy the kubernets master config file into install directory
   template:
     src:  "{{ item }}"
     dest: ${KUBE_LINK_PATH}/etc/{{ item }}
@@ -853,7 +944,7 @@ mkdir -p ${PLAYBOOK_PATH}/roles/kube-node/{files/{bin,ssl},tasks,templates}
 # 创建kube-master Playbook文件
 cat << EOF | tee ${PLAYBOOK_PATH}/kube-node.yaml
 - name: install kubernetes node service
-  hosts: kube-node
+  hosts: node
   remote_user: root
   roles:
     - kube-node
@@ -1096,6 +1187,7 @@ cat << EOF | tee ${PLAYBOOK_PATH}/roles/kube-node/tasks/main.yaml
     mode:  0755
     state: directory
   with_items:
+    - "~/.kube"
     - "/opt/cni/bin"
     - "${KUBE_KUBELET_DIR}"
     - "${KUBE_HOME_PATH}/bin"
@@ -1194,16 +1286,13 @@ ${ETCD_MEMBER_1_IP}
 ${ETCD_MEMBER_2_IP}
 ${ETCD_MEMBER_3_IP}
 
-[kube-master]
+[master]
 ${KUBE_MASTER_1_IP}
 ${KUBE_MASTER_2_IP}
 ${KUBE_MASTER_3_IP}
 
-[kube-node]
+[node]
 ${KUBE_MASTER_1_IP}
 ${KUBE_MASTER_2_IP}
 ${KUBE_MASTER_3_IP}
-${KUBE_NODE_1_IP}
-${KUBE_NODE_2_IP}
-${KUBE_NODE_3_IP}
 EOF
