@@ -21,7 +21,7 @@ CFSSL_PATH="${TEMP_PATH}/cfssl"
 # PLAYBOOK目录
 PLAYBOOK_PATH="${TEMP_PATH}/ansible-playbook"
 
-# 证书信息
+# 证书信息配置
 CERT_ST="Beijing"
 CERT_L="Beijing"
 CERT_O="k8s"
@@ -29,7 +29,7 @@ CERT_OU="System"
 
 # 软件版本
 ETCD_APP_VERSION="v3.4.14"
-KUBE_APP_VERSION="v1.18.8"
+KUBE_APP_VERSION="v1.20.2"
 KUBE_CNI_VERISON="v0.9.0"
 
 # ETCD
@@ -108,7 +108,7 @@ cd ${TEMP_PATH}
 which cfssl || wget https://pkg.cfssl.org/R1.2/cfssl_linux-amd64 -O /usr/local/bin/cfssl
 which cfssljson || wget https://pkg.cfssl.org/R1.2/cfssljson_linux-amd64 -O /usr/local/bin/cfssljson
 which cfssl-certinfo || wget https://pkg.cfssl.org/R1.2/cfssl-certinfo_linux-amd64 -O /usr/local/bin/cfssl-certinfo
-chmod +x /usr/local/bin/cfssl* && ln -s /usr/local/bin/cfssl* /usr/bin
+chmod +x /usr/local/bin/cfssl*
 # 下载etcd文件
 if [ ! -d "kubernetes" ]; then
     wget -q https://github.com/etcd-io/etcd/releases/download/${ETCD_APP_VERSION}/etcd-${ETCD_APP_VERSION}-linux-amd64.tar.gz
@@ -666,7 +666,7 @@ cat << EOF | tee ${PLAYBOOK_PATH}/roles/docker/handlers/main.yml
   systemd:
     state: restarted
     daemon_reload: yes
-    name: docker
+    name: etcd
 EOF
 
 ###################################################################################################################################
@@ -768,13 +768,11 @@ KUBE_API_ARGS="--apiserver-count=3 \\
                --etcd-cafile=${KUBE_LINK_PATH}/etc/ssl/etcd-client-ca.pem \\
                --etcd-certfile=${KUBE_LINK_PATH}/etc/ssl/etcd-client.pem \\
                --etcd-keyfile=${KUBE_LINK_PATH}/etc/ssl/etcd-client-key.pem \\
-               --enable-swagger-ui=true \\
                --feature-gates ServerSideApply=false \\
                --kubelet-client-certificate=${KUBE_LINK_PATH}/etc/ssl/kubelet.pem \\
                --kubelet-client-key=${KUBE_LINK_PATH}/etc/ssl/kubelet-key.pem \\
                --kubelet-preferred-address-types=InternalIP,ExternalIP,Hostname \\
-               --log-file=${KUBE_LOGS_PATH}/kube-apiserver.log \\
-               --log-file-max-size=0 \\
+               --log-dir=${KUBE_LOGS_PATH}/kube-apiserver \\
                --max-mutating-requests-inflight=2500 \\
                --max-requests-inflight=1000 \\
                --proxy-client-cert-file=${KUBE_LINK_PATH}/etc/ssl/kubelet.pem \\
@@ -785,8 +783,9 @@ KUBE_API_ARGS="--apiserver-count=3 \\
                --requestheader-username-headers=X-Remote-User \\
                --requestheader-client-ca-file=${KUBE_LINK_PATH}/etc/ssl/ca.pem \\
                --service-node-port-range=${KUBE_PORT_RANGE} \\
-               --service-account-key-file=${KUBE_LINK_PATH}/etc/ssl/ca-key.pem \\
-               --target-ram-mb=180 \\
+               --service-account-issuer=https://kubernetes.default.svc \\
+               --service-account-key-file=${KUBE_LINK_PATH}/etc/ssl/ca.pem \\
+               --service-account-signing-key-file=${KUBE_LINK_PATH}/etc/ssl/ca-key.pem \\
                --tls-cert-file=${KUBE_LINK_PATH}/etc/ssl/kube-apiserver.pem \\
                --tls-private-key-file=${KUBE_LINK_PATH}/etc/ssl/kube-apiserver-key.pem"
 EOF
@@ -826,12 +825,14 @@ cat << EOF | tee ${PLAYBOOK_PATH}/roles/kube-master/templates/kube-controller-ma
 ### 
 # Add your own!
 KUBE_CONTROLLER_MANAGER_ARGS=--address=0.0.0.0 \\
+                             --allocate-node-cidrs=true \\
+                             --authentication-kubeconfig=${KUBE_LINK_PATH}/etc/kube-controller-manager.kubeconfig \\
+                             --authorization-kubeconfig=${KUBE_LINK_PATH}/etc/kube-controller-manager.kubeconfig \\
                              --leader-elect=true \\
                              --cluster-name=kubernetes \\
                              --cluster-cidr=${KUBE_CLUSTER_CIDR} \\
                              --use-service-account-credentials=true \\
-                             --log-file=${KUBE_LOGS_PATH}/kube-controller-manager.log \\
-                             --log-file-max-size=0 \\
+                             --log-dir=${KUBE_LOGS_PATH}/kube-controller-manager \\
                              --root-ca-file=${KUBE_LINK_PATH}/etc/ssl/ca.pem \\
                              --service-account-private-key-file=${KUBE_LINK_PATH}/etc/ssl/ca-key.pem \\
                              --cluster-signing-cert-file=${KUBE_LINK_PATH}/etc/ssl/ca.pem \\
@@ -890,9 +891,10 @@ cat << EOF | tee ${PLAYBOOK_PATH}/roles/kube-master/templates/kube-scheduler
  
 # Add your own!
 KUBE_SCHEDULER_ARGS="--address=0.0.0.0 \\
+                     --authentication-kubeconfig=${KUBE_LINK_PATH}/etc/kube-scheduler.kubeconfig \\
+                     --authorization-kubeconfig=${KUBE_LINK_PATH}/etc/kube-scheduler.kubeconfig \\
                      --leader-elect=true \\
-                     --log-file=${KUBE_LOGS_PATH}/kube-scheduler.log \\
-                     --log-file-max-size=0 \\
+                     --log-dir=${KUBE_LOGS_PATH}/kube-scheduler \\
                      --kubeconfig=${KUBE_LINK_PATH}/etc/kube-scheduler.kubeconfig"
 EOF
 # 创建kube-scheduler认证文件
@@ -949,7 +951,9 @@ cat << EOF | tee ${PLAYBOOK_PATH}/roles/kube-master/tasks/main.yaml
   with_items:
     - "${KUBE_HOME_PATH}/bin"
     - "${KUBE_HOME_PATH}/etc/ssl"
-    - "${KUBE_LOGS_PATH}"
+    - "${KUBE_LOGS_PATH}/kube-apiserver"
+    - "${KUBE_LOGS_PATH}/kube-controller-manager"
+    - "${KUBE_LOGS_PATH}/kube-scheduler"
 - name: copy the kubernetes master binary file into install directory
   copy:
     src: bin/
@@ -1067,8 +1071,7 @@ KUBELET_POD_INFRA_CONTAINER="--pod-infra-container-image=${KUBE_PAUSE_IMAGE}"
 #
 ## Add your own!
 KUBELET_ARGS="--root-dir=${KUBE_DATA_PATH} \\
-              --log-file=${KUBE_LOGS_PATH}/kubelet.log \\
-              --log-file-max-size=0 \\
+              --log-dir=${KUBE_LOGS_PATH}/kubelet \\
               --cert-dir=${KUBE_LINK_PATH}/etc/ssl \\
               --config=${KUBE_LINK_PATH}/etc/kubelet.config \\
               --kubeconfig=${KUBE_LINK_PATH}/etc/kubelet.kubeconfig"
@@ -1164,41 +1167,56 @@ KUBE_PROXY_HOSTNAME="--hostname-override={{ ansible_hostname }}"
 #
 ## Add your own!
 KUBE_PROXY_ARGS="--config=${KUBE_LINK_PATH}/etc/kube-proxy.config \\
-                 --log-file=${KUBE_LOGS_PATH}/kube-proxy.log \\
-                 --log-file-max-size=0"
+                 --log-dir=${KUBE_LOGS_PATH}/kube-proxy"
 EOF
 # 创建kubelet.config配置文件
 cat << EOF | tee ${PLAYBOOK_PATH}/roles/kube-node/templates/kube-proxy.config
 apiVersion: kubeproxy.config.k8s.io/v1alpha1
 bindAddress: {{ ansible_eth0.ipv4.address }}
+bindAddressHardFail: false
 clientConnection:
   acceptContentTypes: ""
   burst: 10
-  contentType: application/vnd.kubernetes.protobuf
-  kubeconfig: ${KUBE_LINK_PATH}/etc/kube-proxy.kubeconfig
+  contentType: ""
+  kubeconfig: ${KUBE_LINK_PATH}/etc/ssl/kube-proxy.kubeconfig
   qps: 50
 clusterCIDR: ${KUBE_CLUSTER_CIDR}
-configSyncPeriod: 10m0s
+configSyncPeriod: 5m0s
 conntrack:
   maxPerCore: 32768
   min: 131072
-  tcpCloseWaitTimeout: 1h0m0s
-  tcpEstablishedTimeout: 24h0m0s
+  tcpCloseWaitTimeout: null
+  tcpEstablishedTimeout: null
 enableProfiling: false
 healthzBindAddress: 0.0.0.0:10256
+hostnameOverride: "{{ ansible_hostname }}"
+iptables:
+  masqueradeAll: false
+  masqueradeBit: null
+  minSyncPeriod: 0s
+  syncPeriod: 0s
 ipvs:
-  scheduler: "rr"
-  syncPeriod: 15s
+  excludeCIDRs: null
   minSyncPeriod: 5s
+  scheduler: "rr"
+  strictARP: false
+  syncPeriod: 15s
+  tcpFinTimeout: 0s
+  tcpTimeout: 0s
+  udpTimeout: 0s
 
 kind: KubeProxyConfiguration
-metricsBindAddress: 127.0.0.1:10249
+metricsBindAddress: "127.0.0.1:10249"
 mode: "ipvs"
 nodePortAddresses: null
-oomScoreAdj: -999
+oomScoreAdj: null
 portRange: ""
-resourceContainer: /kube-proxy
-udpIdleTimeout: 250ms
+showHiddenMetricsForVersion: ""
+udpIdleTimeout: 0s
+winkernel:
+  enableDSR: false
+  networkName: ""
+  sourceVip: ""
 EOF
 # 
 cat << EOF | tee ${PLAYBOOK_PATH}/roles/kube-node/templates/kube-proxy.kubeconfig
@@ -1221,10 +1239,11 @@ users:
     client-certificate: ${KUBE_LINK_PATH}/etc/ssl/kube-proxy.pem
     client-key: ${KUBE_LINK_PATH}/etc/ssl/kube-proxy-key.pem
 EOF
-# ipvs modules
+# 
 cat << EOF | tee ${PLAYBOOK_PATH}/roles/kube-node/templates/ipvs.modules
 #!/bin/bash
 
+# 4.19+内核已经将nf_conntrack_ipv4 更新为 nf_conntrack
 ipvs_modules="ip_vs ip_vs_lc ip_vs_wlc ip_vs_rr ip_vs_wrr ip_vs_lblc ip_vs_lblcr ip_vs_dh ip_vs_sh ip_vs_fo ip_vs_nq ip_vs_sed ip_vs_ftp nf_conntrack"
 for kernel_module in \${ipvs_modules}; do
     /sbin/modinfo -F filename \${kernel_module} > /dev/null 2>&1
@@ -1260,7 +1279,7 @@ EOF
 cat << EOF | tee ${PLAYBOOK_PATH}/roles/kube-node/tasks/main.yaml
 - name:  mkdir kubernets installation and log directory
   file: 
-    path: "{{ item }}"
+    path: "{{ item  }}"
     owner: root
     group: root
     mode:  0755
@@ -1268,9 +1287,10 @@ cat << EOF | tee ${PLAYBOOK_PATH}/roles/kube-node/tasks/main.yaml
   with_items:
     - "/opt/cni/bin"
     - "${KUBE_DATA_PATH}"
-    - "${KUBE_LOGS_PATH}"
     - "${KUBE_HOME_PATH}/bin"
     - "${KUBE_HOME_PATH}/etc/ssl"
+    - "${KUBE_LOGS_PATH}/kubelet"
+    - "${KUBE_LOGS_PATH}/kube-proxy"
 - name: install ipvsadm software package
   yum:
     name:
